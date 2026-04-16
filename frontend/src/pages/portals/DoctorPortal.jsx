@@ -10,7 +10,7 @@ import { MdSearch, MdEdit, MdSave, MdAutoAwesome, MdPersonAdd, MdCheck, MdClose,
 export default function DoctorPortal() {
   const { user, language } = useStore();
   const [patients, setPatients] = useState([]);
-  const [availableUsers, setAvailableUsers] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,6 @@ export default function DoctorPortal() {
   const loadData = () => {
     authApi.doctorPatients().then(r => {
       const rels = r.data?.relationships || [];
-      const available = r.data?.available_users || [];
       const accepted = rels.filter(rel => rel.status === 'accepted').map(rel => ({
         id: rel.patient_id,
         relationshipId: rel.id,
@@ -46,7 +45,16 @@ export default function DoctorPortal() {
         ageGroup: 'adult', last_visit: 'N/A',
       }));
       setPatients(accepted);
-      setAvailableUsers(available);
+      
+      const pending = rels.filter(rel => rel.status === 'pending').map(rel => ({
+        id: rel.patient_id,
+        relationshipId: rel.id,
+        name: rel.patient_name,
+        username: rel.patient_username,
+        avatar: (rel.patient_name[0] || 'P').toUpperCase(),
+      }));
+      setPendingRequests(pending);
+
       // load full patient details
       accepted.forEach(p => {
         authApi.adminFetchMedical(p.id).then(mr => {
@@ -55,7 +63,7 @@ export default function DoctorPortal() {
       });
     }).catch(() => {
       setPatients([]);
-      setAvailableUsers([]);
+      setPendingRequests([]);
     }).finally(() => setLoading(false));
     authApi.triggeredAlerts().then(r => setTriggeredAlerts(r.data || [])).catch(() => {});
   };
@@ -72,12 +80,12 @@ export default function DoctorPortal() {
     p.username?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAddPatient = async (userId) => {
+  const handleActionRequest = async (relId, action) => {
     try {
-      await authApi.addPatient({ patient_id: userId });
-      toast.success('Patient added successfully! ✅');
+      await authApi.updatePatientStatus(relId, { status: action });
+      toast.success(action === 'accepted' ? 'Patient request accepted!' : 'Patient request declined.');
       loadData();
-    } catch { toast.error('Failed to add patient'); }
+    } catch { toast.error('Failed to update status'); }
   };
 
   const handleSaveNote = async () => {
@@ -160,7 +168,7 @@ Fitness Level: ${data.medical_record?.fitness_level}`;
 
   const TABS = [
     ['myPatients', '🩺 My Patients'],
-    ['addPatients', '➕ Add Patients'],
+    ['pendingRequests', `🔔 Pending Requests (${pendingRequests.length})`],
     ...(selectedPatient ? [
       ['vitals', '💓 Vitals'],
       ['notes', '📝 Notes'],
@@ -201,7 +209,9 @@ Fitness Level: ${data.medical_record?.fitness_level}`;
           {/* Tabs */}
           <div className="tabs">
             <button className={`tab-btn ${activeTab === 'myPatients' ? 'active' : ''}`} onClick={() => setActiveTab('myPatients')}>🩺 My Patients</button>
-            <button className={`tab-btn ${activeTab === 'addPatients' ? 'active' : ''}`} onClick={() => setActiveTab('addPatients')}>➕ Add</button>
+            <button className={`tab-btn ${activeTab === 'pendingRequests' ? 'active' : ''}`} onClick={() => setActiveTab('pendingRequests')}>
+              🔔 Pending {pendingRequests.length > 0 && <span style={{ background: 'var(--danger)', color: 'white', padding: '0 0.4rem', borderRadius: '10px', fontSize: '0.7rem', marginLeft: '0.4rem' }}>{pendingRequests.length}</span>}
+            </button>
           </div>
 
           {activeTab === 'myPatients' && (
@@ -233,30 +243,32 @@ Fitness Level: ${data.medical_record?.fitness_level}`;
             </div>
           )}
 
-          {activeTab === 'addPatients' && (
+          {activeTab === 'pendingRequests' && (
             <div className="card" style={{ padding: '1rem' }}>
-              <div className="h4" style={{ marginBottom: '0.75rem' }}>All Available Users</div>
+              <div className="h4" style={{ marginBottom: '0.75rem' }}>Incoming Patient Requests</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
-                {availableUsers.length === 0 && <p className="text-muted text-sm" style={{ textAlign: 'center', padding: '1rem' }}>No new users available.</p>}
-                {availableUsers.map(u => (
-                  <div key={u.id} style={{
+                {pendingRequests.length === 0 && <p className="text-muted text-sm" style={{ textAlign: 'center', padding: '1rem' }}>No pending requests.</p>}
+                {pendingRequests.map(req => (
+                  <div key={req.id} style={{
                     display: 'flex', alignItems: 'center', gap: '0.5rem',
                     padding: '0.6rem', borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-glass)', border: '1px solid var(--border)',
                   }}>
                     <div className="avatar-placeholder" style={{ width: 32, height: 32, fontSize: '0.75rem' }}>
-                      {(u.first_name?.[0] || u.username?.[0] || 'U').toUpperCase()}
+                      {req.avatar}
                     </div>
                     <div style={{ flex: 1, overflow: 'hidden' }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {[u.first_name, u.last_name].filter(Boolean).join(' ') || u.username}
-                      </div>
-                      <div className="text-xs text-muted">@{u.username}</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{req.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>@{req.username}</div>
                     </div>
-                    <button className="btn btn-primary btn-sm" style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
-                      onClick={() => handleAddPatient(u.id)}>
-                      <MdPersonAdd size={14} /> Add
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button className="btn btn-sm" style={{ padding: '0.3rem', background: 'rgba(16,185,129,0.1)', color: '#10B981' }} onClick={() => handleActionRequest(req.relationshipId, 'accepted')}>
+                        <MdCheck size={18} />
+                      </button>
+                      <button className="btn btn-sm" style={{ padding: '0.3rem', background: 'rgba(239,68,68,0.1)', color: '#EF4444' }} onClick={() => handleActionRequest(req.relationshipId, 'rejected')}>
+                        <MdClose size={18} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

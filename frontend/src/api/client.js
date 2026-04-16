@@ -48,7 +48,8 @@ export const auth = {
   leaderboard: () => client.get('/auth/leaderboard/'),
   // Doctor–Patient
   doctorPatients: () => client.get('/auth/doctor/patients/'),
-  addPatient: d => client.post('/auth/doctor/patients/add/', d),
+  getDoctors: () => client.get('/auth/doctors/'),
+  requestDoctor: d => client.post('/auth/doctor-request/', d),
   updatePatientStatus: (id, d) => client.patch(`/auth/doctor/patients/${id}/status/`, d),
   patientTrend: patientId => client.get(`/auth/doctor/patient-trend/?patient_id=${patientId}`),
   // Chat

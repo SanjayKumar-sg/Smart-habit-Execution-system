@@ -22,7 +22,8 @@ urlpatterns = [
 
     # Doctor–Patient
     path('doctor/patients/', views.PatientListView.as_view(), name='doctor_patients'),
-    path('doctor/patients/add/', views.AddPatientView.as_view(), name='add_patient'),
+    path('doctors/', views.DoctorListView.as_view(), name='doctor_list'),
+    path('doctor-request/', views.RequestDoctorView.as_view(), name='request_doctor'),
     path('doctor/patients/<int:pk>/status/', views.UpdatePatientStatusView.as_view(), name='patient_status'),
     path('doctor/patient-trend/', views.PatientTrendDataView.as_view(), name='patient_trend'),
 

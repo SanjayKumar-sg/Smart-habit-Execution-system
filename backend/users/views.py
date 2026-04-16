@@ -145,7 +145,6 @@ class PatientListView(APIView):
     """Doctor sees ALL users (to add as patients) and their accepted/pending patients."""
 
     def get(self, request):
-        # Only doctors can use this
         if request.user.role != 'doctor':
             return Response({'error': 'Forbidden'}, status=403)
 
@@ -153,40 +152,52 @@ class PatientListView(APIView):
             doctor=request.user
         ).select_related('patient')
 
-        # list of all non-doctor users for doctor to pick from
-        all_users = User.objects.exclude(role__in=['doctor', 'admin']).exclude(
-            id__in=[r.patient_id for r in relationships]
-        )
-
         return Response({
             'relationships': DoctorPatientSerializer(relationships, many=True).data,
-            'available_users': UserSerializer(all_users, many=True).data,
         })
 
+class DoctorListView(APIView):
+    """Users see ALL doctors to send a care request."""
+    def get(self, request):
+        doctors = User.objects.filter(role='doctor')
+        
+        # Optionally, get the user's current status if they have a request active
+        status_map = {}
+        if request.user.role in ['user', 'patient']:
+            rels = DoctorPatientRelationship.objects.filter(patient=request.user)
+            for r in rels:
+                status_map[r.doctor_id] = r.status
 
-class AddPatientView(APIView):
-    """Doctor sends a patient-acceptance request."""
+        data = []
+        for doc in doctors:
+            doc_data = UserSerializer(doc).data
+            doc_data['relationship_status'] = status_map.get(doc.id, None)
+            data.append(doc_data)
 
+        return Response(data)
+
+class RequestDoctorView(APIView):
+    """User sends a care request to a doctor."""
     def post(self, request):
-        if request.user.role != 'doctor':
-            return Response({'error': 'Forbidden'}, status=403)
-        patient_id = request.data.get('patient_id')
+        if request.user.role in ['doctor', 'admin']:
+            return Response({'error': 'Doctors/Admins cannot request care'}, status=403)
+            
+        doctor_id = request.data.get('doctor_id')
         try:
-            patient = User.objects.get(id=patient_id)
+            doctor = User.objects.get(id=doctor_id, role='doctor')
             rel, created = DoctorPatientRelationship.objects.get_or_create(
-                doctor=request.user, patient=patient,
-                defaults={'status': 'accepted'}
+                patient=request.user, doctor=doctor,
+                defaults={'status': 'pending'}
             )
-            if not created:
-                rel.status = 'accepted'
+            if not created and rel.status in ('rejected',):
+                rel.status = 'pending' # allow re-requesting
                 rel.save()
-            # Promote patient's role
-            if patient.role in ('user',):
-                patient.role = 'patient'
-                patient.save(update_fields=['role'])
             return Response(DoctorPatientSerializer(rel).data, status=201)
         except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=404)
+            return Response({'error': 'Doctor not found'}, status=404)
+
+
+
 
 
 class UpdatePatientStatusView(APIView):

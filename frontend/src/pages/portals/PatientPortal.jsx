@@ -7,7 +7,7 @@ import { analyzeAndModifyExercises } from '../../services/gemini';
 import { useStore } from '../../store/useStore';
 import ProgressRing from '../../components/ProgressRing';
 import toast from 'react-hot-toast';
-import { MdAutoAwesome, MdMedicalServices, MdTrendingUp, MdEmojiEvents } from 'react-icons/md';
+import { MdAutoAwesome, MdMedicalServices, MdTrendingUp, MdEmojiEvents, MdFitnessCenter } from 'react-icons/md';
 
 export default function PatientPortal() {
   const { user, ageGroup, language, medicalRecord: cachedMedical, profilePhoto } = useStore();
@@ -20,6 +20,7 @@ export default function PatientPortal() {
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('health');
+  const [doctors, setDoctors] = useState([]);
 
   useEffect(() => {
     Promise.all([
@@ -28,12 +29,14 @@ export default function PatientPortal() {
       authApi.medicalRecord(),
       authApi.badges(),
       insightsApi.list(),
-    ]).then(([p, d, m, b, ins]) => {
+      authApi.getDoctors(),
+    ]).then(([p, d, m, b, ins, docs]) => {
       setProfile(p.data);
       setDashData(d.data);
       setMedRecord(m.data);
       setBadges(b.data.slice(0, 6));
       setInsights(ins.data.slice(0, 4));
+      setDoctors(docs.data || []);
     }).catch(() => { }).finally(() => setLoading(false));
   }, []);
 
@@ -45,6 +48,15 @@ export default function PatientPortal() {
       toast.success('Your AI health plan is ready! 🤖');
     } catch { toast.error('Could not generate plan'); }
     finally { setLoadingPlan(false); }
+  };
+
+  const handleRequestDoctor = async (doctorId) => {
+    try {
+      await authApi.requestDoctor({ doctor_id: doctorId });
+      toast.success('Care request sent to doctor! 📩');
+      const r = await authApi.getDoctors();
+      setDoctors(r.data || []);
+    } catch { toast.error('Failed to send request'); }
   };
 
   if (loading) return <div className="spinner" style={{ margin: '4rem auto' }} />;
@@ -94,7 +106,7 @@ export default function PatientPortal() {
 
       {/* Tabs */}
       <div className="tabs" style={{ marginBottom: '1.5rem' }}>
-        {[['health', '❤️ Health Overview'], ['plan', '🤖 AI Exercise Plan'], ['progress', '📈 Progress'], ['achievements', '🏆 Achievements']].map(([t, label]) => (
+        {[['health', '❤️ Health Overview'], ['plan', '🤖 AI Exercise Plan'], ['progress', '📈 Progress'], ['achievements', '🏆 Achievements'], ['findDoctor', '🩺 Find Doctor']].map(([t, label]) => (
           <button key={t} className={`tab-btn ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>{label}</button>
         ))}
       </div>
@@ -247,6 +259,46 @@ export default function PatientPortal() {
                 <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎖️</div>
                 <p>Complete more habits to earn badges!</p>
               </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Find Doctor */}
+      {activeTab === 'findDoctor' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card">
+          <div className="h3" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MdFitnessCenter color="var(--primary)" /> Find a Doctor
+          </div>
+          <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>
+            Looking to switch or find a primary care doctor? Send a care request to a licensed professional to review your data and assign structured medical exercise plans.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            {doctors.length === 0 ? (
+              <p className="text-muted">No doctors available on the platform yet.</p>
+            ) : (
+              doctors.map(doc => (
+                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-glass)', border: '1px solid var(--border)' }}>
+                  <div className="avatar-placeholder" style={{ width: 48, height: 48, fontSize: '1.2rem' }}>
+                    {(doc.first_name?.[0] || doc.username?.[0] || 'D').toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600 }}>Dr. {[doc.first_name, doc.last_name].join(' ').trim() || doc.username}</div>
+                    <div className="text-xs text-muted" style={{ marginBottom: '0.5rem' }}>@{doc.username}</div>
+                    
+                    {doc.relationship_status === 'pending' ? (
+                      <span className="chip chip-amber" style={{ fontSize: '0.7rem' }}>⏳ Request Pending</span>
+                    ) : doc.relationship_status === 'accepted' ? (
+                      <span className="chip chip-green" style={{ fontSize: '0.7rem' }}>✅ Your Doctor</span>
+                    ) : (
+                      <button className="btn btn-primary btn-sm" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }} onClick={() => handleRequestDoctor(doc.id)}>
+                        Send Request
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </motion.div>

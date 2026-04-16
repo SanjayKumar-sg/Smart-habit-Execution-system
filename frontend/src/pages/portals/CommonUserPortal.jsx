@@ -4,7 +4,7 @@ import { auth as authApi, habits as habitsApi } from '../../api/client';
 import { useStore } from '../../store/useStore';
 import { chatWithCoach, analyzeAndModifyExercises } from '../../services/gemini';
 import toast from 'react-hot-toast';
-import { MdAutoAwesome, MdSmartToy, MdCalendarMonth, MdFitnessCenter, MdPill } from 'react-icons/md';
+import { MdAutoAwesome, MdSmartToy, MdCalendarMonth, MdFitnessCenter, MdHealing } from 'react-icons/md';
 
 export default function CommonUserPortal() {
   const { user, ageGroup, language, medicalRecord: cachedMedical } = useStore();
@@ -19,12 +19,14 @@ export default function CommonUserPortal() {
   const [medications, setMedications] = useState([]);
   const [newMed, setNewMed] = useState('');
   const [activeTab, setActiveTab] = useState('coach');
+  const [doctors, setDoctors] = useState([]);
 
   useEffect(() => {
     habitsApi.today().then(r => {
       setSchedule(r.data?.habits || []);
     }).catch(() => {});
     authApi.getMedications().then(r => setMedications(r.data || [])).catch(() => {});
+    authApi.getDoctors().then(r => setDoctors(r.data || [])).catch(() => {});
   }, []);
 
   const generatePlan = async () => {
@@ -75,6 +77,15 @@ export default function CommonUserPortal() {
     } catch { toast.error('Failed to add medication'); }
   };
 
+  const handleRequestDoctor = async (doctorId) => {
+    try {
+      await authApi.requestDoctor({ doctor_id: doctorId });
+      toast.success('Care request sent to doctor! 📩');
+      const r = await authApi.getDoctors();
+      setDoctors(r.data || []);
+    } catch { toast.error('Failed to send request'); }
+  };
+
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'User';
 
   return (
@@ -107,7 +118,7 @@ export default function CommonUserPortal() {
 
       {/* Tabs */}
       <div className="tabs" style={{ marginBottom: '1.5rem' }}>
-        {[['coach', '🤖 AI Coach'], ['plan', '🏋️ Exercise Plan'], ['schedule', '📅 Today\'s Schedule'], ['medication', '💊 Medications']].map(([t, label]) => (
+        {[['coach', '🤖 AI Coach'], ['plan', '🏋️ Exercise Plan'], ['schedule', '📅 Today\'s Schedule'], ['medication', '💊 Medications'], ['findDoctor', '🩺 Find Doctor']].map(([t, label]) => (
           <button key={t} className={`tab-btn ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>{label}</button>
         ))}
       </div>
@@ -231,7 +242,7 @@ export default function CommonUserPortal() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="card">
             <div className="h3" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <MdPill color="var(--accent)" /> Today's Medications
+              <MdHealing color="var(--accent)" /> Today's Medications
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
               <input className="form-input" value={newMed} onChange={e => setNewMed(e.target.value)}
@@ -271,6 +282,46 @@ export default function CommonUserPortal() {
           <div className="card" style={{ background: 'linear-gradient(135deg,rgba(245,158,11,0.1),rgba(16,185,129,0.05))' }}>
             <div className="h4" style={{ marginBottom: '0.5rem' }}>💊 Medication Adherence Module</div>
             <p className="text-muted text-sm">Track your daily medication intake and earn points for consistency. Consistent medication adherence is logged to your health record and earns you +5 pts per dose!</p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Find Doctor */}
+      {activeTab === 'findDoctor' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card">
+          <div className="h3" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MdFitnessCenter color="var(--primary)" /> Find a Doctor
+          </div>
+          <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>
+            Need clinical guidance? Send a care request to a licensed professional to review your data and assign structured medical exercise plans.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            {doctors.length === 0 ? (
+              <p className="text-muted">No doctors available on the platform yet.</p>
+            ) : (
+              doctors.map(doc => (
+                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-glass)', border: '1px solid var(--border)' }}>
+                  <div className="avatar-placeholder" style={{ width: 48, height: 48, fontSize: '1.2rem' }}>
+                    {(doc.first_name?.[0] || doc.username?.[0] || 'D').toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600 }}>Dr. {[doc.first_name, doc.last_name].join(' ').trim() || doc.username}</div>
+                    <div className="text-xs text-muted" style={{ marginBottom: '0.5rem' }}>@{doc.username}</div>
+                    
+                    {doc.relationship_status === 'pending' ? (
+                      <span className="chip chip-amber" style={{ fontSize: '0.7rem' }}>⏳ Request Pending</span>
+                    ) : doc.relationship_status === 'accepted' ? (
+                      <span className="chip chip-green" style={{ fontSize: '0.7rem' }}>✅ Your Doctor</span>
+                    ) : (
+                      <button className="btn btn-primary btn-sm" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }} onClick={() => handleRequestDoctor(doc.id)}>
+                        Send Request
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </motion.div>
       )}
