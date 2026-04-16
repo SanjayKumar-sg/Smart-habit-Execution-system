@@ -9,9 +9,11 @@ export default function Calendar() {
   // For a simple demo, we fetch the logs of all habits and color today's calendar based on completeness.
   // In a robust implementation, we'd fetch logs grouped by date across a month block.
   useEffect(() => {
-    // Just fetch recent logs (no habit_id to fetch all)
-    habitsApi.logs('').then(res => {
-      setLogs(res.data);
+    // Fetch all logs using the 'all' identifier
+    habitsApi.logs('all').then(res => {
+      // DRF PageNumberPagination returns { results: [...] }, check for it
+      const logsData = res.data?.results || (Array.isArray(res.data) ? res.data : []);
+      setLogs(logsData);
     }).catch(() => toast.error('Failed to load past logs'))
       .finally(() => setLoading(false));
   }, []);

@@ -1,8 +1,10 @@
+/* eslint-disable no-unused-vars, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { habits as habitsApi } from '../api/client';
 import toast from 'react-hot-toast';
 import { MdAdd, MdClose } from 'react-icons/md';
+import { useStore } from '../store/useStore';
 
 export default function Goals() {
   const [goals, setGoals] = useState([]);
@@ -10,6 +12,8 @@ export default function Goals() {
   const [loading, setLoading] = useState(true);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showHabitModal, setShowHabitModal] = useState(false);
+  const { user, ageGroup, language, role } = useStore();
+  const setMedicalRecord = useStore(s => s.setMedicalRecord);
 
   const [newGoal, setNewGoal] = useState({ title: '', category: 'fitness' });
   const [newHabit, setNewHabit] = useState({ title: '', goal: '', difficulty: 'medium', duration_minutes: 15 });
@@ -21,8 +25,8 @@ export default function Goals() {
   const fetchData = async () => {
     try {
       const [g, h] = await Promise.all([habitsApi.goals(), habitsApi.list()]);
-      setGoals(g.data);
-      setHabits(h.data);
+      setGoals(Array.isArray(g.data) ? g.data : (g.data?.results || []));
+      setHabits(Array.isArray(h.data) ? h.data : (h.data?.results || []));
     } catch {
       toast.error('Failed to load data');
     } finally {
@@ -56,6 +60,32 @@ export default function Goals() {
 
   if (loading) return <div className="spinner" style={{ margin: '4rem auto' }} />;
 
+  const doctorHabits = habits.filter(h => h.title.includes('[Doctor]'));
+  const aiHabits = habits.filter(h => h.title.includes('[AI]'));
+  const progressHabits = habits.filter(h => !h.title.includes('[Doctor]') && !h.title.includes('[AI]'));
+
+  const renderHabitCard = (h, i) => (
+    <motion.div key={h.id} className="card" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
+          <div style={{ width: 40, height: 40, borderRadius: '10px', background: `${h.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+            {h.icon}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600 }}>{h.title.replace(' [Doctor]', '').replace(' [AI]', '')}</div>
+            <div className="text-xs text-muted" style={{ textTransform:'capitalize' }}>{h.difficulty} • {h.duration_minutes} min</div>
+          </div>
+        </div>
+        {h.streak_count > 0 && <div className="streak-badge">🔥 {h.streak_count}</div>}
+      </div>
+      {h.stacked_after_title && (
+        <div className="text-xs text-muted" style={{ marginTop: '0.75rem', display:'flex', alignItems:'center', gap:'0.25rem' }}>
+          🔗 Stacked after: <strong>{h.stacked_after_title}</strong>
+        </div>
+      )}
+    </motion.div>
+  );
+
   return (
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -63,10 +93,12 @@ export default function Goals() {
           <h1 className="h1">Goals & Habits</h1>
           <p className="text-muted">Define the person you want to become.</p>
         </div>
-        <div style={{ display:'flex', gap:'1rem' }}>
-          <button className="btn btn-secondary" onClick={() => setShowGoalModal(true)}><MdAdd /> New Goal</button>
-          <button className="btn btn-primary" onClick={() => setShowHabitModal(true)}><MdAdd /> New Habit</button>
-        </div>
+        {role !== 'patient' && (
+          <div style={{ display:'flex', gap:'1rem' }}>
+            <button className="btn btn-secondary" onClick={() => setShowGoalModal(true)}><MdAdd /> New Goal</button>
+            <button className="btn btn-primary" onClick={() => setShowHabitModal(true)}><MdAdd /> New Habit</button>
+          </div>
+        )}
       </div>
 
       <div className="grid-2">
@@ -92,31 +124,35 @@ export default function Goals() {
           </div>
         </div>
 
-        <div>
-          <h2 className="h3" style={{ marginBottom: '1rem' }}>Active Habits</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {habits.map((h, i) => (
-              <motion.div key={h.id} className="card" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: '10px', background: `${h.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
-                      {h.icon}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{h.title}</div>
-                      <div className="text-xs text-muted" style={{ textTransform:'capitalize' }}>{h.difficulty} • {h.duration_minutes} min</div>
-                    </div>
-                  </div>
-                  {h.streak_count > 0 && <div className="streak-badge">🔥 {h.streak_count}</div>}
-                </div>
-                {h.stacked_after_title && (
-                  <div className="text-xs text-muted" style={{ marginTop: '0.75rem', display:'flex', alignItems:'center', gap:'0.25rem' }}>
-                    🔗 Stacked after: <strong>{h.stacked_after_title}</strong>
-                  </div>
-                )}
-              </motion.div>
-            ))}
-            {habits.length === 0 && <div className="card text-center text-muted">No habits active.</div>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {doctorHabits.length > 0 && (
+            <div>
+              <h2 className="h3" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--danger)' }}>
+                <span>🩺</span> Doctor Prescribed
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {doctorHabits.map(renderHabitCard)}
+              </div>
+            </div>
+          )}
+          {aiHabits.length > 0 && (
+            <div>
+              <h2 className="h3" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#7C3AED' }}>
+                <span>🤖</span> AI Suggested
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {aiHabits.map(renderHabitCard)}
+              </div>
+            </div>
+          )}
+          <div>
+            <h2 className="h3" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span>📈</span> Progress Habits
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {progressHabits.map(renderHabitCard)}
+              {progressHabits.length === 0 && <div className="card text-center text-muted">No progress habits active.</div>}
+            </div>
           </div>
         </div>
       </div>

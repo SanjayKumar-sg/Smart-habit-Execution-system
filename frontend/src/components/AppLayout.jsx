@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { useStore } from '../store/useStore';
 
-export default function AppLayout() {
+export default function AppLayout({ children }) {
   const sidebarOpen = useStore(s => s.sidebarOpen);
   return (
     <div className="app-layout">
@@ -11,7 +11,7 @@ export default function AppLayout() {
       <div className={`main-content ${!sidebarOpen ? 'sidebar-closed' : ''}`}>
         <Header />
         <div className="page-container">
-          <Outlet />
+          {children || <Outlet />}
         </div>
         <div className="spacer" />
       </div>

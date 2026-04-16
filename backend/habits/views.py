@@ -29,9 +29,19 @@ NUDGE_MESSAGES = [
 ]
 
 def generate_micro_tasks(habit):
+    today = datetime.date.today()
+    # If it's an AI/Medical spawned habit, just use the title directly as the task
+    if any(tag in habit.title for tag in ['[Doctor]', '[AI]']):
+        MicroTask.objects.get_or_create(
+            habit=habit,
+            title=habit.title,
+            scheduled_date=today,
+            defaults={'order': 0, 'duration_minutes': habit.duration_minutes, 'points': 15}
+        )
+        return
+
     category = habit.goal.category if habit.goal else 'custom'
     templates = MICRO_TASK_TEMPLATES.get(category, MICRO_TASK_TEMPLATES['custom'])
-    today = datetime.date.today()
     difficulty = habit.difficulty
     count = 3 if difficulty == 'easy' else 5 if difficulty == 'medium' else 7
     selected = random.sample(templates * 3, min(count, len(templates * 3)))

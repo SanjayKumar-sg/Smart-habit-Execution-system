@@ -15,9 +15,9 @@ export default function Social() {
       socialApi.friends(),
       socialApi.challenges()
     ]).then(([l, f, c]) => {
-      setLeaderboard(l.data);
-      setFriends(f.data);
-      setChallenges(c.data);
+      setLeaderboard(Array.isArray(l.data) ? l.data : (l.data?.results || []));
+      setFriends(Array.isArray(f.data) ? f.data : (f.data?.results || []));
+      setChallenges(Array.isArray(c.data) ? c.data : (c.data?.results || []));
     }).catch(() => toast.error('Failed to load social data'))
       .finally(() => setLoading(false));
   }, []);

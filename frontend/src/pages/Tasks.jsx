@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { habits as habitsApi } from '../api/client';
@@ -30,7 +31,7 @@ export default function Tasks() {
   const fetchTasks = async () => {
     try {
       const { data } = await habitsApi.microtasks();
-      setTasks(data);
+      setTasks(Array.isArray(data) ? data : (data?.results || []));
     } catch {
       toast.error('Failed to load tasks');
     } finally {
@@ -116,8 +117,13 @@ export default function Tasks() {
               <div style={{ flex: 1 }}>
                 <h3 className="h4" style={{
                   textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                  opacity: task.status === 'completed' ? 0.6 : 1
-                }}>{task.title}</h3>
+                  opacity: task.status === 'completed' ? 0.6 : 1,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap'
+                }}>
+                  {task.title.replace(' [Doctor]', '').replace(' [AI]', '')}
+                  {task.title.includes('[Doctor]') && <span className="chip chip-red" style={{ fontSize: '0.7rem', padding: '0.1rem 0.5rem' }}>🩺 Doctor Plan</span>}
+                  {task.title.includes('[AI]') && <span className="chip chip-purple" style={{ fontSize: '0.7rem', padding: '0.1rem 0.5rem' }}>🤖 AI Plan</span>}
+                </h3>
                 <div className="text-sm text-muted">Est: {task.duration_minutes} mins</div>
               </div>
               <div className="chip chip-purple" style={{ fontSize: '0.8rem' }}>+{task.points} pts</div>

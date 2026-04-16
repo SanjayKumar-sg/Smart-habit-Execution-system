@@ -8,7 +8,7 @@ export default function ProgressRing({ percent = 0, size = 140, strokeWidth = 10
     <div className="progress-ring-container" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={center} cy={center} r={radius} fill="none"
-          stroke="var(--border)" strokeWidth={strokeWidth} />
+          stroke="var(--border)" strokeWidth={strokeWidth} opacity={0.3} />
         <circle cx={center} cy={center} r={radius} fill="none"
           stroke={color} strokeWidth={strokeWidth}
           strokeDasharray={circ} strokeDashoffset={offset}

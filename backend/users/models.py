@@ -7,6 +7,8 @@ class User(AbstractUser):
         ('de', 'German'), ('hi', 'Hindi'), ('zh', 'Chinese'),
         ('ar', 'Arabic'), ('pt', 'Portuguese'),
     ]
+    ROLE_CHOICES = [('patient','Patient'),('doctor','Doctor'),('admin','Admin')]
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='patient')
     bio = models.TextField(blank=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
@@ -40,6 +42,8 @@ class MedicalRecord(models.Model):
         ('beginner','Beginner'),('intermediate','Intermediate'),('advanced','Advanced')
     ], default='beginner')
     doctor_notes = models.TextField(blank=True)
+    proposed_ai_plan = models.TextField(blank=True, null=True, help_text="AI generated plan awaiting approval")
+    confirmed_ai_plan = models.TextField(blank=True, null=True, help_text="Doctor approved AI plan")
     last_updated = models.DateTimeField(auto_now=True)
 
     def get_conditions_list(self):

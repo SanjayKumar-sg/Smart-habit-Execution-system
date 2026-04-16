@@ -23,13 +23,21 @@ class LoginSerializer(serializers.Serializer):
         return {'user': user}
 
 class UserSerializer(serializers.ModelSerializer):
+    medical_record = serializers.SerializerMethodField()
+    
+    def get_medical_record(self, obj):
+        try:
+            return MedicalRecordSerializer(obj.medical_record).data
+        except:
+            return None
+            
     class Meta:
         model = User
-        fields = ['id','username','email','first_name','last_name','avatar','bio',
+        fields = ['id','username','email','first_name','last_name','avatar','role','bio',
                   'date_of_birth','height_cm','weight_kg','preferred_language',
                   'dark_mode','notification_enabled','voice_assistant_enabled',
                   'timezone','total_points','level','streak_count','longest_streak',
-                  'last_active','created_at']
+                  'last_active','created_at','medical_record']
         read_only_fields = ['total_points','level','streak_count','longest_streak','last_active','created_at']
 
 class MedicalRecordSerializer(serializers.ModelSerializer):

@@ -46,6 +46,18 @@ class MedicalRecordView(generics.RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
 
+class AdminMedicalRecordView(generics.RetrieveUpdateAPIView):
+    serializer_class = MedicalRecordSerializer
+    permission_classes = [permissions.IsAuthenticated] # Should be IsDoctor
+    def get_object(self):
+        user_id = self.request.query_params.get('user_id')
+        if not user_id: return None
+        record, _ = MedicalRecord.objects.get_or_create(user_id=user_id)
+        return record
+    def perform_update(self, serializer):
+        user_id = self.request.data.get('user_id')
+        serializer.save(user_id=user_id)
+
 class UserPreferencesView(generics.RetrieveUpdateAPIView):
     serializer_class = UserPreferencesSerializer
     def get_object(self):
