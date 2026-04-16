@@ -26,6 +26,11 @@ The Smart Habit Execution System is a full-stack medical wellness application th
 - **Performance Analytics**: Platform-wide statistics on user engagement and habit completion.
 - **Role Management**: Control system-wide user roles and permissions.
 
+### 🚨 Advanced Modules
+- **Critical Vital Alerts**: An automated notification system that alerts doctors when a patient's recorded vitals fall outside of doctor-defined safety thresholds. Transforms the platform from a passive tracker into a proactive medical safety tool.
+- **AI Clinical Trend Summaries**: A feature for the doctor portal that uses AI to synthesize a patient's recent vitals and habit data into a concise text summary. Helps doctors quickly identify patterns and risks.
+- **Medication Adherence Module**: A specialized logging tool for patients to record medication intake, integrated with their daily habit streaks.
+
 ## 🛠️ Technology Stack
 
 - **Frontend**: 

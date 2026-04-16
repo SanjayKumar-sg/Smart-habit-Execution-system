@@ -94,6 +94,93 @@ export default function MedicalRecord() {
     }
   };
 
+  // Patients see a fully read-only view
+  if (role === 'patient' || role === 'user') {
+    const vitals = [
+      { icon: '⚕️', label: 'Conditions', value: record.conditions || 'None' },
+      { icon: '💊', label: 'Medications', value: record.medications || 'None' },
+      { icon: '🌿', label: 'Allergies', value: record.allergies || 'None' },
+      { icon: '💓', label: 'Resting HR', value: record.resting_heart_rate ? `${record.resting_heart_rate} BPM` : '—' },
+      { icon: '🩺', label: 'BP (Sys/Dia)', value: record.blood_pressure_systolic ? `${record.blood_pressure_systolic} / ${record.blood_pressure_diastolic}` : '—' },
+      { icon: '🩸', label: 'Blood Glucose', value: record.blood_glucose ? `${record.blood_glucose} mg/dL` : '—' },
+      { icon: '🏃', label: 'Fitness Level', value: record.fitness_level || '—' },
+    ];
+    return (
+      <div className="fade-in" style={{ maxWidth: 860, margin: '0 auto' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 className="h1" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <MdMedicalInformation color="var(--danger)" /> Medical Record
+          </h1>
+          <div className="nudge-banner" style={{ background: 'rgba(6,182,212,0.08)', borderColor: 'var(--secondary)', marginTop: '0.75rem' }}>
+            <MdLockOutline size={20} />
+            <p style={{ fontSize: '0.875rem' }}>
+              Your medical record is <strong>managed by your doctor</strong>. Only your assigned doctor can update clinical data or exercise plans. You can view your record and track your medications below.
+            </p>
+          </div>
+        </div>
+
+        {/* Vitals Grid */}
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <div className="h3" style={{ marginBottom: '1.25rem' }}>Your Health Summary</div>
+          <div className="grid-3" style={{ gap: '1rem' }}>
+            {vitals.map(v => (
+              <div key={v.label} style={{ background: 'var(--bg-glass)', borderRadius: 'var(--radius-sm)', padding: '1rem', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>{v.icon}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{v.value}</div>
+                <div className="text-xs text-muted">{v.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Doctor Notes */}
+        {record.doctor_notes && (
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div className="h4" style={{ marginBottom: '0.75rem' }}>📋 Doctor's Notes</div>
+            <p style={{ lineHeight: 1.7, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{record.doctor_notes}</p>
+          </div>
+        )}
+
+        {/* Confirmed AI Plan */}
+        {showPlan && aiPlan && (
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="card" style={{ borderTop: '3px solid var(--primary)' }}>
+            <div className="h3" style={{ marginBottom: '1rem' }}>🤖 Your Doctor-Confirmed Exercise Plan</div>
+            <div className="nudge-banner" style={{ marginBottom: '1.25rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>💡</span>
+              <p style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>{aiPlan.summary}</p>
+            </div>
+            <div className="grid-2" style={{ gap: '0.875rem' }}>
+              {(aiPlan.ai_suggested_exercises || aiPlan.exercises || []).map((ex, i) => (
+                <motion.div key={i} className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
+                  style={{ padding: '1rem', borderLeft: `4px solid ${ex.intensity === 'low' ? '#10B981' : ex.intensity === 'medium' ? '#F59E0B' : '#EF4444'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
+                    <span style={{ fontSize: '1.3rem' }}>{ex.emoji || '🏃'}</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{ex.name}</span>
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--secondary)', marginBottom: '0.25rem' }}>⏱ {ex.duration}</div>
+                  <div className="text-xs text-muted">{ex.reason}</div>
+                  <button className="btn btn-sm btn-secondary" style={{ marginTop: '0.75rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                    onClick={() => handleAddToTasks(ex, 'ai')}>
+                    <MdAddTask /> Add to Tasks
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {!record.confirmed_ai_plan && (
+          <div className="card" style={{ textAlign: 'center', padding: '2rem', background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⏳</div>
+            <p className="text-muted" style={{ fontSize: '0.875rem' }}>Your doctor hasn't confirmed an AI exercise plan yet. They can generate and send one from the Doctor Portal.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+
+
   const intensityColor = { low: '#10B981', medium: '#F59E0B', high: '#EF4444' };
 
   return (

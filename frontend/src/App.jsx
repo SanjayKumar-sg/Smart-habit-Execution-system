@@ -21,6 +21,8 @@ import Settings from './pages/Settings';
 import DoctorPortal from './pages/portals/DoctorPortal';
 import PatientPortal from './pages/portals/PatientPortal';
 import AdminPortal from './pages/portals/AdminPortal';
+import CommonUserPortal from './pages/portals/CommonUserPortal';
+import Chat from './components/Chat';
 
 function RoleRoute({ children }) {
   const { isAuthenticated } = useStore();
@@ -33,6 +35,7 @@ function PublicRoute({ children }) {
   if (isAuthenticated) {
     if (role === 'doctor') return <Navigate to="/portal/doctor" replace />;
     if (role === 'admin') return <Navigate to="/portal/admin" replace />;
+    if (role === 'user') return <Navigate to="/portal/user" replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -99,10 +102,12 @@ export default function App() {
           <Route path="portal/patient" element={<PatientPortal />} />
           <Route path="portal/doctor" element={<DoctorPortal />} />
           <Route path="portal/admin" element={<AdminPortal />} />
+          <Route path="portal/user" element={<CommonUserPortal />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      <Chat />
     </BrowserRouter>
   );
 }

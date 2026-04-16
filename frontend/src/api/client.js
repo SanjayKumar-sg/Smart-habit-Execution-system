@@ -46,6 +46,25 @@ export const auth = {
   updatePreferences: d => client.patch('/auth/preferences/', d),
   badges: () => client.get('/auth/badges/'),
   leaderboard: () => client.get('/auth/leaderboard/'),
+  // Doctor–Patient
+  doctorPatients: () => client.get('/auth/doctor/patients/'),
+  addPatient: d => client.post('/auth/doctor/patients/add/', d),
+  updatePatientStatus: (id, d) => client.patch(`/auth/doctor/patients/${id}/status/`, d),
+  patientTrend: patientId => client.get(`/auth/doctor/patient-trend/?patient_id=${patientId}`),
+  // Chat
+  getMessages: withId => client.get(`/auth/chat/?with=${withId}`),
+  sendMessage: d => client.post('/auth/chat/', d),
+  unreadCount: () => client.get('/auth/chat/unread/'),
+  // Alerts
+  getAlerts: (patientId) => patientId
+    ? client.get(`/auth/alerts/?patient_id=${patientId}`)
+    : client.get('/auth/alerts/'),
+  createAlert: d => client.post('/auth/alerts/', d),
+  triggeredAlerts: () => client.get('/auth/alerts/triggered/'),
+  // Medication
+  getMedications: () => client.get('/auth/medication/'),
+  addMedication: d => client.post('/auth/medication/', d),
+  takeMedication: id => client.post(`/auth/medication/${id}/take/`),
 };
 
 export const habits = {
@@ -89,6 +108,7 @@ export const social = {
   friends: () => client.get('/social/friends/'),
   sendRequest: d => client.post('/social/friends/request/', d),
   respondRequest: (id, d) => client.post(`/social/friends/${id}/respond/`, d),
+  searchUsers: q => client.get(`/social/users/search/?q=${q}`),
   challenges: () => client.get('/social/challenges/'),
   createChallenge: d => client.post('/social/challenges/', d),
   joinChallenge: id => client.post(`/social/challenges/${id}/join/`),

@@ -3,7 +3,8 @@ import { useStore } from '../store/useStore';
 import {
   MdDashboard, MdChecklist, MdFlag, MdInsights, MdSmartToy,
   MdBarChart, MdGroup, MdPerson, MdMedicalServices, MdCalendarMonth,
-  MdSettings, MdLogout, MdLocalHospital, MdAdminPanelSettings, MdPersonPin
+  MdSettings, MdLogout, MdLocalHospital, MdAdminPanelSettings, MdPersonPin,
+  MdFitnessCenter
 } from 'react-icons/md';
 
 const NAV_MAIN = [
@@ -25,13 +26,14 @@ const NAV_MAIN = [
 ];
 
 const ROLE_PORTALS = {
+  user: [{ to: '/portal/user', icon: <MdFitnessCenter />, label: 'Wellness Hub', color: '#06B6D4' }],
+  patient: [{ to: '/portal/patient', icon: <MdPersonPin />, label: 'My Health Portal', color: '#10B981' }],
   doctor: [{ to: '/portal/doctor', icon: <MdLocalHospital />, label: 'Doctor Portal', color: '#06B6D4' }],
   admin: [
     { to: '/portal/doctor', icon: <MdLocalHospital />, label: 'Doctor Portal', color: '#06B6D4' },
     { to: '/portal/patient', icon: <MdPersonPin />, label: 'Patient Portal', color: '#10B981' },
     { to: '/portal/admin', icon: <MdAdminPanelSettings />, label: 'Admin Portal', color: '#F59E0B' },
   ],
-  patient: [{ to: '/portal/patient', icon: <MdPersonPin />, label: 'My Health Portal', color: '#10B981' }],
 };
 
 export default function Sidebar() {
@@ -43,7 +45,7 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  const portals = ROLE_PORTALS[role] || ROLE_PORTALS['patient'];
+  const portals = ROLE_PORTALS[role] || ROLE_PORTALS['user'];
 
   return (
     <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
@@ -105,10 +107,10 @@ export default function Sidebar() {
               </div>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                 <span>Lv {user.level} · {user.total_points} pts</span>
-                {role && role !== 'patient' && (
+{role && (
                   <span style={{
-                    background: role === 'admin' ? 'rgba(245,158,11,0.2)' : 'rgba(6,182,212,0.2)',
-                    color: role === 'admin' ? '#F59E0B' : '#06B6D4',
+                    background: role === 'admin' ? 'rgba(245,158,11,0.2)' : role === 'doctor' ? 'rgba(6,182,212,0.2)' : role === 'patient' ? 'rgba(16,185,129,0.2)' : 'rgba(124,58,237,0.2)',
+                    color: role === 'admin' ? '#F59E0B' : role === 'doctor' ? '#06B6D4' : role === 'patient' ? '#10B981' : '#7C3AED',
                     padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
                   }}>{role}</span>
                 )}

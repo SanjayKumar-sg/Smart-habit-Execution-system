@@ -38,8 +38,9 @@ const AGE_GROUPS = [
 ];
 
 export default function Register() {
-  const [step, setStep] = useState(1); // 1=age group, 2=form
+  const [step, setStep] = useState(1); // 1=age group, 2=role, 3=form
   const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedRole, setSelectedRole] = useState('user');
   const [form, setForm] = useState({ username: '', email: '', first_name: '', last_name: '', password: '' });
   const [loading, setLoading] = useState(false);
   const setUser = useStore(s => s.setUser);
@@ -57,18 +58,26 @@ export default function Register() {
     setStep(2);
   };
 
+  const handleNextRole = () => {
+    setStep(3);
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await auth.register({ ...form, age_group: selectedGroup });
+      const { data } = await auth.register({ ...form, age_group: selectedGroup, role: selectedRole });
       localStorage.setItem('access_token', data.tokens.access);
       localStorage.setItem('refresh_token', data.tokens.refresh);
       setUser(data.user);
       setAgeGroup(selectedGroup);
-      setRole(data.user?.role || 'patient');
-      toast.success('Account created! Let\'s build great habits 🚀');
-      navigate('/dashboard');
+      const role = data.user?.role || 'user';
+      setRole(role);
+      toast.success('Account created! Welcome 🚀');
+      if (role === 'doctor') navigate('/portal/doctor');
+      else if (role === 'admin') navigate('/portal/admin');
+      else if (role === 'user') navigate('/portal/user');
+      else navigate('/dashboard');
     } catch (err) {
       const msg = err.response?.data ? Object.values(err.response.data)[0]?.[0] : 'Registration failed';
       toast.error(msg);
@@ -155,17 +164,49 @@ export default function Register() {
                 </div>
 
                 <button className="btn btn-primary btn-lg" style={{ width: '100%' }} onClick={handleNext}>
-                  Continue →
+                  Continue: Choose Role →
                 </button>
                 <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '1rem' }}>
                   Already have an account?{' '}
                   <Link to="/login" style={{ color: 'var(--primary-light)', fontWeight: 600 }}>Sign in →</Link>
                 </p>
               </motion.div>
+            ) : step === 2 ? (
+            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)} style={{ marginBottom: '1rem' }}>← Back</button>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎭</div>
+                <h2 className="h2" style={{ marginBottom: '0.3rem' }}>What's your role?</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Choose how you'll use the platform.</p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                {[
+                  { id: 'user', emoji: '🏃', label: 'Wellness User', desc: 'AI exercise plans & health coaching', color: '#06B6D4' },
+                  { id: 'patient', emoji: '🤒', label: 'Patient', desc: 'Under doctor care — tracked medical AI plans', color: '#10B981' },
+                  { id: 'doctor', emoji: '👨‍⚕️', label: 'Doctor', desc: 'Manage patients & generate clinical AI plans', color: '#7C3AED' },
+                ].map(r => (
+                  <button key={r.id} onClick={() => setSelectedRole(r.id)} style={{
+                    background: selectedRole === r.id ? `${r.color}18` : 'var(--bg-glass)',
+                    border: `2px solid ${selectedRole === r.id ? r.color : 'var(--border)'}`,
+                    borderRadius: 'var(--radius-md)', padding: '1rem 1.25rem',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem', textAlign: 'left', width: '100%',
+                    transition: 'var(--transition)',
+                  }}>
+                    <span style={{ fontSize: '1.8rem' }}>{r.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: selectedRole === r.id ? r.color : 'var(--text-primary)' }}>{r.label}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.desc}</div>
+                    </div>
+                    {selectedRole === r.id && <span style={{ color: r.color, fontSize: '1.2rem' }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+              <button className="btn btn-primary btn-lg" style={{ width: '100%' }} onClick={handleNextRole}>Continue →</button>
+            </motion.div>
             ) : (
-              <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)} style={{ marginBottom: '1rem', padding: '0.4rem 0.8rem' }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setStep(2)} style={{ marginBottom: '1rem', padding: '0.4rem 0.8rem' }}>
                     ← Back
                   </button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.3rem' }}>
